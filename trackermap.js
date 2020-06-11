@@ -1,6 +1,5 @@
 //Function to get CSV from PressFreedomTracker and inserts it to "demo" on the page
 var getFreedomTrackerInfo = function () {
-
 	var url = "https://pressfreedomtracker.us/all-incidents/export/";
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function () {
@@ -23,18 +22,22 @@ var parseCSV = function (csv) {
 	var headers = lines[0].split(",");
 
 	for (var i = 1; i < lines.length; i++) {
-
-		var obj = {};
-		var currentline = lines[i].split(","); //hoping the commas are escaped otherwise this won't work
+		var obj = {}
+		var currentline = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/); //hoping the commas are escaped otherwise this might not work
 
 		for (var j = 0; j < headers.length; j++) {
-			obj[headers[j]] = currentline[j];
+			if (j == 16) { //handling odd formatting on column Q
+				//obj[headers[j]] = JSON.stringify(currentline[j]);
+				console.log(currentline[j])
+			}
+			else {
+				obj[headers[j]] = currentline[j];
+            }
+			
 		}
-
-		result.push(obj);
-
+		result.push(obj)
 	}
-	return JSON.stringify(result);
+	return JSON.stringify(result[0]);
 }
 
 getFreedomTrackerInfo();
