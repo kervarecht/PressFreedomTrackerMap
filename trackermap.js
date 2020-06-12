@@ -5,7 +5,7 @@ var getFreedomTrackerInfo = function () {
 	xhttp.onreadystatechange = function () {
 		if (this.readyState == 4 && this.status == 200) {
 			
-			document.getElementById("demo").innerHTML = parseCSV(this.response);
+			var freedomTrackerResponseData = JSON.parse(parseCSV(this.response))[0].title;
 		}
 	};
 
@@ -26,18 +26,11 @@ var parseCSV = function (csv) {
 		var currentline = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/); //hoping the commas are escaped otherwise this might not work
 
 		for (var j = 0; j < headers.length; j++) {
-			if (j == 16) { //handling odd formatting on column Q
-				//obj[headers[j]] = JSON.stringify(currentline[j]);
-				console.log(currentline[j])
-			}
-			else {
 				obj[headers[j]] = currentline[j];
-            }
-			
 		}
-		result.push(obj)
+		result.push(obj);
 	}
-	return JSON.stringify(result[0]);
+	return JSON.stringify(result);
 }
 
-getFreedomTrackerInfo();
+// getFreedomTrackerInfo(); //commented out for now to prevent hitting the API over and over
