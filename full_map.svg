@@ -180,13 +180,14 @@ Place this code in the empty space below.
     <path id="DC1" d="M801.8 253.8l-1.1-1.6-1-.8 1.1-1.6 2.2 1.5z"/>
     <circle id="DC2" stroke="#FFFFFF" stroke-width="1.5" cx="801.3" cy="251.8" r="5" opacity="1"/> <!-- Set opacity to "0" to hide DC circle -->
   </g>
+  <path id="frames" fill="none" stroke="#A9A9A9" stroke-width="2" d="M215 493v55l36 45M0 425h147l68 68h85l54 54v46"/>
 </g>
-<path id="frames" fill="none" stroke="#A9A9A9" stroke-width="2" d="M215 493v55l36 45M0 425h147l68 68h85l54 54v46"/>
+
   <g id="map-controls">
-    <path class="button" id="up-pan" d="M25 5 l6 10 a20 35 0 0 0 -12 0z" />
-    <path class="button" id="right-pan" d="M5 25 l10 -6 a35 20 0 0 0 0 12z" />
-    <path class="button" id="down-pan" d="M25 45 l6 -10 a20, 35 0 0,1 -12,0z" />
-    <path class="button" id="left-pan" d="M45 25 l-10 -6 a35 20 0 0 1 0 12z" />
+    <path class="button" id="pan-up" d="M25 5 l6 10 a20 35 0 0 0 -12 0z" />
+    <path class="button" id="pan-right" d="M5 25 l10 -6 a35 20 0 0 0 0 12z" />
+    <path class="button" id="pan-down" d="M25 45 l6 -10 a20, 35 0 0,1 -12,0z" />
+    <path class="button" id="pan-left" d="M45 25 l-10 -6 a35 20 0 0 1 0 12z" />
 
     <circle class="button" id="zoom-out" cx="25" cy="20.5" r="4" />
     <circle class="button" id="zoom-in" cx="25" cy="29.5" r="4"/>

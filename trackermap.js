@@ -1,13 +1,14 @@
-
 //DATA CODE
 //Function to get CSV from PressFreedomTracker and inserts it to "demo" on the page
 var getFreedomTrackerInfo = function () {
-	var url = "https://pressfreedomtracker.us/all-incidents/export/";
+	//var url = "https://pressfreedomtracker.us/all-incidents/export/";
+	var url = "/csv"
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function () {
 		if (this.readyState == 4 && this.status == 200) {
 			
-			var freedomTrackerResponseData = JSON.parse(parseCSV(this.response))[0].title;
+			var freedomTrackerResponseData = JSON.parse(parseCSV(this.response));
+			//console.log(freedomTrackerResponseData)
 		}
 	};
 
@@ -17,25 +18,26 @@ var getFreedomTrackerInfo = function () {
 
 //Function to parse the CSV once it's done
 //gently updated from https://stackoverflow.com/questions/27979002/convert-csv-data-into-json-format-using-javascript
+
 var parseCSV = function (csv) {
 	var lines = csv.split("\n");
 
 	var result = [];
 	var headers = lines[0].split(",");
-
 	for (var i = 1; i < lines.length; i++) {
 		var obj = {}
-		var currentline = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/); //hoping the commas are escaped otherwise this might not work
-
+		var currentline = lines[i].split(/(?!\B"[^"]*),(?![^"]*"\B)/g); //hoping the commas are escaped otherwise this might not work
+		console.log(currentline);
 		for (var j = 0; j < headers.length; j++) {
 				obj[headers[j]] = currentline[j];
 		}
 		result.push(obj);
 	}
+	console.log(JSON.stringify(result));
 	return JSON.stringify(result);
 }
 
-// getFreedomTrackerInfo(); //commented out for now to prevent hitting the API over and over
+var data = getFreedomTrackerInfo(); //commented out for now to prevent hitting the API over and over
 
 
 //MAP WIDGET CODE
@@ -71,49 +73,60 @@ window.onload = function () {
 	//Initialize SVG for scroll and pan functions
 	var transformMatrix = [1, 0, 0, 1, 0, 0];
 	var centerX = svg.getAttribute("width")/ 2;
-	var centerY = svg.getAttribute("height") / 2;
+	var centerY = svg.getAttribute("height") / 2;	
 	var matrixGroup = svgObject.getElementById("map-group");
 
 	//Map transform from legend - zoom in/out, pan 4 directions
 	svgObject.getElementById("zoom-in").addEventListener("click", function () {
-		zoom(1.25, matrixGroup, transformMatrix, centerX, centerY);
-	});
-	svgObject.getElementById("zoom-out").addEventListener("click", function () {
 		zoom(0.8, matrixGroup, transformMatrix, centerX, centerY);
 	});
-
-
-
-	//Detect Scroll and Drag and do map transforms
-	//keep track of mouse position
-	var mousePositionX, mousePositionY
-	var trackMouse = true;
-	svgObject.getElementById("map-group").addEventListener("mouseover", function (mouseEvent) {
-		if (trackMouse) {
-			mousePositionX = mouseEvent.mouseX;
-			mousePositionY = mouseEvent.mouseY;
-        }
+	svgObject.getElementById("zoom-out").addEventListener("click", function () {
+		zoom(1.25, matrixGroup, transformMatrix, centerX, centerY);
 	});
-	//add event listener for scrolling
-	svgObject.getElementById("map-group").addEventListener("mousewheel", function (mouseEvent) {
+	svgObject.getElementById("pan-left").addEventListener("click", function () {
+		pan(-25, 0, matrixGroup, transformMatrix);
+	});
+	svgObject.getElementById("pan-right").addEventListener("click", function () {
+		pan(25, 0, matrixGroup, transformMatrix);
+	});
+	svgObject.getElementById("pan-up").addEventListener("click", function () {
+		pan(0, 25, matrixGroup, transformMatrix);
+	});
+	svgObject.getElementById("pan-down").addEventListener("click", function () {
+		pan(0, -25, matrixGroup, transformMatrix);
+    })
 
+
+
+	//Map transforms from drag and scroll;
+	//Zoom in/out on scroll
+	svgObject.getElementById("map-group").addEventListener("wheel", function (mouseEvent) {
+		mouseEvent.preventDefault();
+		var scale = 1;
+		var transform = scale += mouseEvent.deltaY * 0.01;
+		zoom(transform, matrixGroup, transformMatrix, centerX, centerY);
 	});
-	//event listener for dragging
-	svgObject.getElementById("map-group").addEventListener("drag", function (mouseEvent) {
-		console.log("drag event fired");
-		//stop tracking every cursor change for the length of drag
-		trackMouse = false;
-		var currentMouseX, currentMouseY, changeInX, changeInY;
-		currentMouseX = mouseEvent.mouseX;
-		currentMouseY = mouseEvent.mouseY;
-		changeInX = mousePositionX - currentMouseX;
-		changeInY = mousePositionY - currentMouseY;
-		pan(changeInX, changeInY, matrixGroup);
+	//Pan on drag
+	var mapIsPanning;
+	svgObject.getElementById("map-group").addEventListener("mousedown", function (mouseEvent) {
+		mapIsPanning = true;
 	});
-	//start tracking cursor again after dragging is done
-	svgObject.getElementById("map-group").addEventListener("ondrop", function (mouseEvent) {
-		trackMouse = true;
-		console.log("ondrop event fired");
+	svgObject.getElementById("map-group").addEventListener("mousemove", function (mouseEvent) {
+		if (mapIsPanning) {
+			var changeInX = mouseEvent.movementX;
+			var changeInY = mouseEvent.movementY;
+			console.log(changeInX, changeInY);
+			if (!changeInX) {
+				changeInX = 0;
+			}
+			if (!changeInY) {
+				changeInY = 0;
+            }
+			pan(changeInX, changeInY, matrixGroup, transformMatrix);
+		}
+	});
+	svgObject.getElementById("map-group").addEventListener("mouseup", function () {
+		mapIsPanning = false;
 	});
 
 	//Create an array from the HTMLCollection and grab every path element from the SVG
@@ -135,28 +148,6 @@ window.onload = function () {
 				svgObject.getElementById(elementId).setAttribute("stroke-width", 0)
 
 			});
-			//add event listener for clicking
-			svgObject.getElementById(path.id).addEventListener("click", function (mouseEvent) {
-				elementId = mouseEvent.target.id;
-			});
         }
 	});
 }
-
-/*zoom function - event listener detects the wheel/scroll above but doesn't do the zoom.
-function zoom(event) {
-	event.preventDefault();
-
-	scale += event.deltaY * -0.01;
-
-	// Restrict scale
-	scale = Math.min(Math.max(.125, scale), 4);
-
-	// Apply scale transform
-	el.style.transform = `scale(${scale})`;
-}
-
-let scale = 1;
-const el = document.querySelector('div');
-el.onwheel = zoom;
-*/
