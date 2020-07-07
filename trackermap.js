@@ -1,44 +1,69 @@
-//DATA CODE
-//Function to get CSV from PressFreedomTracker and inserts it to "demo" on the page
-var getFreedomTrackerInfo = function () {
-	//var url = "https://pressfreedomtracker.us/all-incidents/export/";
-	var url = "/csv"
+﻿//DATA CODE
+//Function to get CSV from PressFreedomTracker
+var getFreedomTrackerInfo = function (callback) {
+	//var url = "https://pressfreedomtracker.us/all-incidents/export/"; //Actual URL
+	var url = "/csv" //DEV URL
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function () {
 		if (this.readyState == 4 && this.status == 200) {
-			
-			var freedomTrackerResponseData = JSON.parse(parseCSV(this.response));
-			//console.log(freedomTrackerResponseData)
+			//Parsing CSV in response and creating an array of objects to work with
+			var freedomTrackerResponseData;
+			Papa.parse(this.response, {
+				complete: function (results) {
+					freedomTrackerResponseData = callback(createNewsObjects(results)); //pass result into callback function
+				}
+			});
 		}
-	};
+	}
 
 	xhttp.open("GET", url, true);
 	xhttp.send();
 };
 
-//Function to parse the CSV once it's done
-//gently updated from https://stackoverflow.com/questions/27979002/convert-csv-data-into-json-format-using-javascript
+//calling the file
+var data = getFreedomTrackerInfo(getCountsByState); 
 
-var parseCSV = function (csv) {
-	var lines = csv.split("\n");
 
-	var result = [];
-	var headers = lines[0].split(",");
-	for (var i = 1; i < lines.length; i++) {
+//DATA PROCESSING CODE
+
+//Function to convert parsed CSV to array of objects
+function createNewsObjects(resultsObject) {
+	var resultsData = resultsObject.data;
+	results = [];
+	var headers = resultsData[0];
+	for (var i = 1; i < resultsData.length; i++) {
 		var obj = {}
-		var currentline = lines[i].split(/(?!\B"[^"]*),(?![^"]*"\B)/g); //hoping the commas are escaped otherwise this might not work
-		console.log(currentline);
-		for (var j = 0; j < headers.length; j++) {
-				obj[headers[j]] = currentline[j];
+		if (resultsData[i].length == headers.length) {
+			for (var j = 0; j < headers.length; j++) {
+				obj[headers[j]] = resultsData[i][j];
+			}
 		}
-		result.push(obj);
+		results.push(obj);
 	}
-	console.log(JSON.stringify(result));
-	return JSON.stringify(result);
+	return results;
+}; 
+
+//Function to get counts by state
+function getCountsByState(array) {
+	var countsByState = {};
+	for (var i = 0; i < array.length; i++) {
+		var stateToCheck = array[i].state;
+		if (!stateToCheck || typeof stateToCheck != "string") {
+			console.log(stateToCheck);
+			statetoCheck = "undefined";
+			countsByState[statetoCheck] ? countsByState[stateToCheck] += 1 : countsByState[statetoCheck] = 1;
+        }
+		else if (!countsByState[stateToCheck]) {
+			countsByState[stateToCheck] = 1;
+		}
+		else {
+			console.log(stateToCheck);
+			countsByState[stateToCheck] += 1;
+        }
+	}
+	console.log(countsByState);
+	return countsByState;
 }
-
-var data = getFreedomTrackerInfo(); //commented out for now to prevent hitting the API over and over
-
 
 //MAP WIDGET CODE
 //With much help from http://www.petercollingridge.co.uk/tutorials/svg/interactive/pan-and-zoom/
@@ -52,7 +77,7 @@ function pan(dx, dy, matrixGroup, transformMatrix) {
 	matrixGroup.setAttributeNS(null, "transform", newMatrix);
 }
 
-//Map zoom function
+//Map zoom functions
 function zoom(scale, matrixGroup, transformMatrix, centerX, centerY) {
 	for (var i = 0; i < 4; i++) {
 		transformMatrix[i] *= scale;
@@ -69,7 +94,7 @@ window.onload = function () {
 	//Find SVG
 	var svgObject = document.getElementById('map').contentDocument;
 	var svg = svgObject.getElementsByTagName("svg")[0];
-	console.log(svg);
+
 	//Initialize SVG for scroll and pan functions
 	var transformMatrix = [1, 0, 0, 1, 0, 0];
 	var centerX = svg.getAttribute("width")/ 2;
@@ -94,9 +119,7 @@ window.onload = function () {
 	});
 	svgObject.getElementById("pan-down").addEventListener("click", function () {
 		pan(0, -25, matrixGroup, transformMatrix);
-    })
-
-
+	});
 
 	//Map transforms from drag and scroll;
 	//Zoom in/out on scroll
@@ -151,3 +174,5 @@ window.onload = function () {
         }
 	});
 }
+
+//
