@@ -7,10 +7,14 @@ var getFreedomTrackerInfo = function (callback) {
 	xhttp.onreadystatechange = function () {
 		if (this.readyState == 4 && this.status == 200) {
 			//Parsing CSV in response and creating an array of objects to work with
-			var freedomTrackerResponseData;
+			var freedomTrackerResponseData, countsByState, quartersFromMaxValue;
 			Papa.parse(this.response, {
 				complete: function (results) {
-					freedomTrackerResponseData = callback(createNewsObjects(results)); //pass result into callback function
+					freedomTrackerResponseData = createNewsObjects(results); //pass result into callback function
+					countsByState = getCountsByState(freedomTrackerResponseData);
+					quartersFromMaxValue = defineQuartersFromMax(countsByState);
+					//This isn't working but the map exists and the data passed in should be valid by this point
+					colorStateByFrequencyQuarter("AK", countsByState, quartersFromMaxValue, mapColors);
 				}
 			});
 		}
@@ -35,7 +39,23 @@ function createNewsObjects(resultsObject) {
 		var obj = {}
 		if (resultsData[i].length == headers.length) {
 			for (var j = 0; j < headers.length; j++) {
-				obj[headers[j]] = resultsData[i][j];
+				//Parse state names to just abbreviations for US states
+				if (headers[j] == "state" && resultsData[i][j].includes("(")) {
+					//Match values inside parentheses and only return that
+					var regExMatch = /\(([^)]+)\)/;
+					var strippedState = resultsData[i][j].match(regExMatch)[1];
+					obj[headers[j]] = strippedState;
+				}
+				//Data is not regular so need exceptions for DC and North Carolina
+				else if (headers[j] == "state" && resultsData[i][j] === "North Carolina") {
+					obj[headers[j]] = "NC";
+				}
+				else if (headers[j] == "state" && resultsData[i][j] === "District of Columbia") {
+					obj[headers[j]] = "DC";
+				}
+				else {
+					obj[headers[j]] = resultsData[i][j];
+				}
 			}
 		}
 		results.push(obj);
@@ -43,33 +63,50 @@ function createNewsObjects(resultsObject) {
 	return results;
 }; 
 
-//Function to get counts by state
+//Function to get counts by state.
+//Add state with count 1 if it doesn't exist, otherwise increment state count by 1.
 function getCountsByState(array) {
 	var countsByState = {};
 	for (var i = 0; i < array.length; i++) {
 		var stateToCheck = array[i].state;
+		//If the data isn't what's expected
 		if (!stateToCheck || typeof stateToCheck != "string") {
-			console.log(stateToCheck);
 			statetoCheck = "undefined";
 			countsByState[statetoCheck] ? countsByState[stateToCheck] += 1 : countsByState[statetoCheck] = 1;
-        }
+		}
 		else if (!countsByState[stateToCheck]) {
 			countsByState[stateToCheck] = 1;
 		}
 		else {
-			console.log(stateToCheck);
 			countsByState[stateToCheck] += 1;
         }
 	}
-	console.log(countsByState);
+	defineQuartersFromMax(countsByState);
 	return countsByState;
 }
 
+//Define quartiles depending on max value
+function defineQuartersFromMax(values) {
+	listOfKeys = Object.keys(values);
+	var currentMax, firstQuarter, secondQuarter, thirdQuarter;
+	var quartileValues = [];
+	currentMax = 0;
+	for (var i = 0; i < listOfKeys.length; i++) {
+		if (values[listOfKeys[i]] > currentMax) {
+			currentMax = values[listOfKeys[i]];
+		}
+	}
+	firstQuarter = Math.floor(currentMax * 0.25);
+	secondQuarter = Math.floor(currentMax * 0.5);
+	thirdQuarter = Math.floor(currentMax * 0.75);
+	quarterValues.push(firstQuarter, secondQuarter, thirdQuarter, currentMax);
+	return quarterValues;
+}
+
 //MAP WIDGET CODE
-//With much help from http://www.petercollingridge.co.uk/tutorials/svg/interactive/pan-and-zoom/
 
 //Map pan function
-
+//With much help from http://www.petercollingridge.co.uk/tutorials/svg/interactive/pan-and-zoom/
 function pan(dx, dy, matrixGroup, transformMatrix) {
 	transformMatrix[4] += dx;
 	transformMatrix[5] += dy;
@@ -77,7 +114,7 @@ function pan(dx, dy, matrixGroup, transformMatrix) {
 	matrixGroup.setAttributeNS(null, "transform", newMatrix);
 }
 
-//Map zoom functions
+//Map zoom function
 function zoom(scale, matrixGroup, transformMatrix, centerX, centerY) {
 	for (var i = 0; i < 4; i++) {
 		transformMatrix[i] *= scale;
@@ -89,7 +126,16 @@ function zoom(scale, matrixGroup, transformMatrix, centerX, centerY) {
 	matrixGroup.setAttributeNS(null, "transform", newMatrix);
 }
 
+//Map state fill colors
+var mapColors = {
+	"high": "#ff0000",
+	"medium": "#ff5a00",
+	"low": "#ff9a00",
+	"minimal": "#ffce00",
+	"noData": "#f0ff00"
+}
 
+//Actual code to run map
 window.onload = function () {
 	//Find SVG
 	var svgObject = document.getElementById('map').contentDocument;
@@ -138,7 +184,6 @@ window.onload = function () {
 		if (mapIsPanning) {
 			var changeInX = mouseEvent.movementX;
 			var changeInY = mouseEvent.movementY;
-			console.log(changeInX, changeInY);
 			if (!changeInX) {
 				changeInX = 0;
 			}
@@ -158,21 +203,54 @@ window.onload = function () {
 			console.log("no ID found");
 		}
 		else {
+			//Get element ID
+			var stateElement = svgObject.getElementById(path.id);
 			//Outline the state on hover
-			svgObject.getElementById(path.id).addEventListener("mouseover", function (mouseEvent) {
-				elementId = mouseEvent.target.id;
-				svgObject.getElementById(elementId).setAttribute("style", "stroke:black");
-				svgObject.getElementById(elementId).setAttribute("stroke-width", 2);
+			stateElement.addEventListener("mouseover", function (mouseEvent) {
+				var element = svgObject.getElementById(mouseEvent.target.id);
+				element.setAttribute("style", "stroke:black");
+				element.setAttribute("stroke-width", 2);
 			});
 			//Remove state outline when leaving
-			svgObject.getElementById(path.id).addEventListener("mouseleave", function (mouseEvent) {
-				elementId = mouseEvent.target.id;
-				svgObject.getElementById(elementId).setAttribute("style", "stroke: ''");
-				svgObject.getElementById(elementId).setAttribute("stroke-width", 0)
-
+			stateElement.addEventListener("mouseleave", function (mouseEvent) {
+				var element = svgObject.getElementById(mouseEvent.target.id);
+				element.setAttribute("style", "stroke: ''");
+				element.setAttribute("stroke-width", 0)
 			});
         }
 	});
 }
 
-//
+//Functions to inject data into map
+var testStateId = "AK"
+var getStateElement = function (id) {
+	svgObject = document.getElementById('map').contentDocument.getElementById(id);
+}
+
+var colorStateByFrequencyQuarter = function (stateId, values, quarterValues, colors) {
+	var element = getStateElement(stateId);
+	var count = values[stateId];
+	var quarter;
+	switch (count) {
+		case count = 0:
+			quarter = "noData";
+			break;
+		case count > 0 && count <= quarterValues[0]:
+			quarter = "minimal";
+			break;
+		case count > quarterValues[0] && count <= quarterValues[1]:
+			quarter = "low";
+			break;
+		case count > quarterValues[1] && count <= quarterValues[2]:
+			quarter = "medium";
+			break;
+		case count > quarterValues[2]:
+			quarter = "high";
+			break;
+	}
+	var color = colors[count];
+	console.log(color);
+	console.log(count);
+	console.log(element);
+	element.setAttribute("fill", color);
+};
