@@ -18,9 +18,17 @@ var getFreedomTrackerInfo = function (callback) {
 					freedomTrackerResponseData = createNewsObjects(results); //pass result into callback function
 					countsByState = getCountsByState(freedomTrackerResponseData);
 					quartersFromMaxValue = defineQuartersFromMax(countsByState);
-					//This isn't working but the map exists and the data passed in should be valid by this point
-					var states = Object.keys(countsByState);
-					colorStateByFrequencyQuarter("AR", countsByState, quartersFromMaxValue, mapColors);
+					//This works when I type in the state into the function but not when using the Object keys.
+					console.log(countsByState);
+					var states = Object.keys(countsByState).filter(function (key) {
+						if (key.length == 2 && key != "PR") {
+							return key;
+						}
+					});
+					states.forEach(function (state) {
+						colorStateByFrequencyQuarter(state, countsByState, quartersFromMaxValue, mapColors)
+					});
+					//colorStateByFrequencyQuarter("AR", countsByState, quartersFromMaxValue, mapColors);
 				}
 			});
 		}
@@ -256,11 +264,11 @@ function colorStateByFrequencyQuarter(stateId, values, quarterValues, colors) {
 		element.setAttribute("fill", colors.minimal);
 	}
 	else if (count > quarterValues[0] && count <= quarterValues[1]) {
-		console.log("count between " + quarterValues[0] + " and " + quartervalues[1]);
+		console.log("count between " + quarterValues[0] + " and " + quarterValues[1]);
 		element.setAttribute("fill", colors.low);
 	}
 	else if (count > quarterValues[1] && count <= quarterValues[2]) {
-		console.log("count between " + quarterValues[1] + " and " + quartervalues[2]);
+		console.log("count between " + quarterValues[1] + " and " + quarterValues[2]);
 		element.setAttribute("fill", colors.medium);
 	}
 	else if (count > quarterValues[2]) {
