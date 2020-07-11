@@ -3,6 +3,11 @@
 var getFreedomTrackerInfo = function (callback) {
 	//var url = "https://pressfreedomtracker.us/all-incidents/export/"; //Actual URL
 	var url = "/csv" //DEV URL
+	/*Update to use fetch instead
+	fetch(url).then(response => {
+		console.log(response.body);
+	});
+	*/
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function () {
 		if (this.readyState == 4 && this.status == 200) {
@@ -14,10 +19,12 @@ var getFreedomTrackerInfo = function (callback) {
 					countsByState = getCountsByState(freedomTrackerResponseData);
 					quartersFromMaxValue = defineQuartersFromMax(countsByState);
 					//This isn't working but the map exists and the data passed in should be valid by this point
-					colorStateByFrequencyQuarter("AK", countsByState, quartersFromMaxValue, mapColors);
+					var states = Object.keys(countsByState);
+					colorStateByFrequencyQuarter("AR", countsByState, quartersFromMaxValue, mapColors);
 				}
 			});
 		}
+		
 	}
 
 	xhttp.open("GET", url, true);
@@ -89,7 +96,7 @@ function getCountsByState(array) {
 function defineQuartersFromMax(values) {
 	listOfKeys = Object.keys(values);
 	var currentMax, firstQuarter, secondQuarter, thirdQuarter;
-	var quartileValues = [];
+	var quarterValues = [];
 	currentMax = 0;
 	for (var i = 0; i < listOfKeys.length; i++) {
 		if (values[listOfKeys[i]] > currentMax) {
@@ -104,6 +111,9 @@ function defineQuartersFromMax(values) {
 }
 
 //MAP WIDGET CODE
+
+//Map element
+var mapElement;
 
 //Map pan function
 //With much help from http://www.petercollingridge.co.uk/tutorials/svg/interactive/pan-and-zoom/
@@ -140,6 +150,7 @@ window.onload = function () {
 	//Find SVG
 	var svgObject = document.getElementById('map').contentDocument;
 	var svg = svgObject.getElementsByTagName("svg")[0];
+	mapElement = svgObject;
 
 	//Initialize SVG for scroll and pan functions
 	var transformMatrix = [1, 0, 0, 1, 0, 0];
@@ -215,42 +226,45 @@ window.onload = function () {
 			stateElement.addEventListener("mouseleave", function (mouseEvent) {
 				var element = svgObject.getElementById(mouseEvent.target.id);
 				element.setAttribute("style", "stroke: ''");
-				element.setAttribute("stroke-width", 0)
+				element.setAttribute("stroke-width", 0);
 			});
-        }
+		}
 	});
 }
 
 //Functions to inject data into map
-var testStateId = "AK"
-var getStateElement = function (id) {
-	svgObject = document.getElementById('map').contentDocument.getElementById(id);
+function getStateElement(id) {
+	console.log(id);
+	if (!mapElement.getElementById(id)) {
+		console.log("shit ain't loaded yet");
+		getStateElement(id);
+	}
+	else {
+		return mapElement.getElementById(id);
+	}
 }
 
-var colorStateByFrequencyQuarter = function (stateId, values, quarterValues, colors) {
+function colorStateByFrequencyQuarter(stateId, values, quarterValues, colors) {
 	var element = getStateElement(stateId);
 	var count = values[stateId];
-	var quarter;
-	switch (count) {
-		case count = 0:
-			quarter = "noData";
-			break;
-		case count > 0 && count <= quarterValues[0]:
-			quarter = "minimal";
-			break;
-		case count > quarterValues[0] && count <= quarterValues[1]:
-			quarter = "low";
-			break;
-		case count > quarterValues[1] && count <= quarterValues[2]:
-			quarter = "medium";
-			break;
-		case count > quarterValues[2]:
-			quarter = "high";
-			break;
+	if (count == 0) {
+		console.log("count = 0");
+		element.setAttribute("fill", colors.noData);
 	}
-	var color = colors[count];
-	console.log(color);
-	console.log(count);
-	console.log(element);
-	element.setAttribute("fill", color);
+	else if (count > 0 && count <= quarterValues[0]) {
+		console.log("count between 0 and " + quarterValues[0]);
+		element.setAttribute("fill", colors.minimal);
+	}
+	else if (count > quarterValues[0] && count <= quarterValues[1]) {
+		console.log("count between " + quarterValues[0] + " and " + quartervalues[1]);
+		element.setAttribute("fill", colors.low);
+	}
+	else if (count > quarterValues[1] && count <= quarterValues[2]) {
+		console.log("count between " + quarterValues[1] + " and " + quartervalues[2]);
+		element.setAttribute("fill", colors.medium);
+	}
+	else if (count > quarterValues[2]) {
+	    console.log("high value!");
+		element.setAttribute("fill", colors.high);
+	}	
 };
