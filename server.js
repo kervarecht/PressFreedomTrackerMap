@@ -1,6 +1,6 @@
 const express = require('express')
 const app = express()
-const port = 3000
+const port = 3001;
 
 app.get('/', (req, res) => res.status(200).sendFile('map_home.html', { root: __dirname }));
 app.get('/trackermap.js', (req, res) => res.status(200).sendFile('trackermap.js', { root: __dirname }));

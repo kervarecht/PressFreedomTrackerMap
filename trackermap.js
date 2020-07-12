@@ -15,11 +15,12 @@ var getFreedomTrackerInfo = function (callback) {
 			var freedomTrackerResponseData, countsByState, quartersFromMaxValue;
 			Papa.parse(this.response, {
 				complete: function (results) {
-					freedomTrackerResponseData = createNewsObjects(results); //pass result into callback function
+					freedomTrackerResponseData = createNewsObjects(results);
+					//Getting state counts from the array of objects
 					countsByState = getCountsByState(freedomTrackerResponseData);
+					//defining ranges for colors
 					quartersFromMaxValue = defineQuartersFromMax(countsByState);
-					//This works when I type in the state into the function but not when using the Object keys.
-					console.log(countsByState);
+					//Filtering out states not on the map and applying colors
 					var states = Object.keys(countsByState).filter(function (key) {
 						if (key.length == 2 && key != "PR") {
 							return key;
@@ -28,7 +29,6 @@ var getFreedomTrackerInfo = function (callback) {
 					states.forEach(function (state) {
 						colorStateByFrequencyQuarter(state, countsByState, quartersFromMaxValue, mapColors)
 					});
-					//colorStateByFrequencyQuarter("AR", countsByState, quartersFromMaxValue, mapColors);
 				}
 			});
 		}
@@ -96,7 +96,6 @@ function getCountsByState(array) {
 			countsByState[stateToCheck] += 1;
         }
 	}
-	defineQuartersFromMax(countsByState);
 	return countsByState;
 }
 
@@ -120,7 +119,7 @@ function defineQuartersFromMax(values) {
 
 //MAP WIDGET CODE
 
-//Map element
+//Map element global variable
 var mapElement;
 
 //Map pan function
@@ -158,6 +157,7 @@ window.onload = function () {
 	//Find SVG
 	var svgObject = document.getElementById('map').contentDocument;
 	var svg = svgObject.getElementsByTagName("svg")[0];
+	//Set global map variable
 	mapElement = svgObject;
 
 	//Initialize SVG for scroll and pan functions
@@ -236,6 +236,7 @@ window.onload = function () {
 				element.setAttribute("style", "stroke: ''");
 				element.setAttribute("stroke-width", 0);
 			});
+			addFloatingInfoDisplay(path.id);
 		}
 	});
 }
@@ -276,3 +277,20 @@ function colorStateByFrequencyQuarter(stateId, values, quarterValues, colors) {
 		element.setAttribute("fill", colors.high);
 	}	
 };
+
+//Add floating div with info on hover
+function addFloatingInfoDisplay(elementId) { //countsByState, freedomTrackerResponseData should also be variables here
+	var floatingElement = '<g id="component"><rect id = "content" width = "50" height = "50" ></rect ><g class="tooltip" transform="translate(20,20)" opacity="0.9"><rect rx="5" width="100" height="25"></rect><text x="15" y="16">Hello</text></g></g >'
+	var element = mapElement.getElementById(elementId);
+	var position = element.getBoundingClientRect();
+	//Add on hover
+	element.addEventListener("mouseover", function (e) {
+		floatingElement.style.left = (position.right + 20) + "px";
+		floatingElement.style.top = (window.scrollY + position.top - 60) + "px";
+		floatingElement.style.display = "block";
+	});
+	//Remove on mouseout
+	element.addEventListener("mouseLeave", function (e) {
+		floatingElement.style.display = "none";
+	});
+}
