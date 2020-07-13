@@ -29,6 +29,7 @@ var getFreedomTrackerInfo = function (callback) {
 					states.forEach(function (state) {
 						colorStateByFrequencyQuarter(state, countsByState, quartersFromMaxValue, mapColors)
 					});
+					addFloatingInfoDisplay("AR");
 				}
 			});
 		}
@@ -236,16 +237,13 @@ window.onload = function () {
 				element.setAttribute("style", "stroke: ''");
 				element.setAttribute("stroke-width", 0);
 			});
-			addFloatingInfoDisplay(path.id);
 		}
 	});
 }
 
 //Functions to inject data into map
 function getStateElement(id) {
-	console.log(id);
 	if (!mapElement.getElementById(id)) {
-		console.log("shit ain't loaded yet");
 		getStateElement(id);
 	}
 	else {
@@ -257,40 +255,45 @@ function colorStateByFrequencyQuarter(stateId, values, quarterValues, colors) {
 	var element = getStateElement(stateId);
 	var count = values[stateId];
 	if (count == 0) {
-		console.log("count = 0");
 		element.setAttribute("fill", colors.noData);
 	}
 	else if (count > 0 && count <= quarterValues[0]) {
-		console.log("count between 0 and " + quarterValues[0]);
 		element.setAttribute("fill", colors.minimal);
 	}
 	else if (count > quarterValues[0] && count <= quarterValues[1]) {
-		console.log("count between " + quarterValues[0] + " and " + quarterValues[1]);
 		element.setAttribute("fill", colors.low);
 	}
 	else if (count > quarterValues[1] && count <= quarterValues[2]) {
-		console.log("count between " + quarterValues[1] + " and " + quarterValues[2]);
 		element.setAttribute("fill", colors.medium);
 	}
 	else if (count > quarterValues[2]) {
-	    console.log("high value!");
 		element.setAttribute("fill", colors.high);
 	}	
 };
 
 //Add floating div with info on hover
 function addFloatingInfoDisplay(elementId) { //countsByState, freedomTrackerResponseData should also be variables here
-	var floatingElement = '<g id="component"><rect id = "content" width = "50" height = "50" ></rect ><g class="tooltip" transform="translate(20,20)" opacity="0.9"><rect rx="5" width="100" height="25"></rect><text x="15" y="16">Hello</text></g></g >'
+	var floatingElement = mapElement.createElement("div");
+	floatingElement.innerHTML = "test est test";
 	var element = mapElement.getElementById(elementId);
+	var anchor = document.getElementById("demo");
 	var position = element.getBoundingClientRect();
-	//Add on hover
+	console.log(position);
 	element.addEventListener("mouseover", function (e) {
-		floatingElement.style.left = (position.right + 20) + "px";
-		floatingElement.style.top = (window.scrollY + position.top - 60) + "px";
-		floatingElement.style.display = "block";
+		anchor.append(floatingElement);
+		e.preventDefault()
+		//Inserting the floating element works, but changing its properties doesn't.
+		floatingElement.left = (position.right + 20) + "px";
+		floatingElement.top = (window.scrollY + position.top - 60) + "px";
+		floatingElement.display = "block";
+		floatingElement.fill= "green";
+		floatingElement.height = "100px";
+		floatingElement.width =  "100px";
+		
 	});
 	//Remove on mouseout
 	element.addEventListener("mouseLeave", function (e) {
 		floatingElement.style.display = "none";
+		floatingElement.remove();
 	});
 }
