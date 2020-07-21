@@ -192,5 +192,6 @@ Place this code in the empty space below.
     <circle class="button" id="zoom-out" cx="25" cy="20.5" r="4" />
     <circle class="button" id="zoom-in" cx="25" cy="29.5" r="4"/>
   </g>
+  <text id="tooltip" x="0" y="0" visibility="hidden">Test Text</text>
 </svg>
 

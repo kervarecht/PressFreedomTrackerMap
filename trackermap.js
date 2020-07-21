@@ -20,16 +20,17 @@ var getFreedomTrackerInfo = function (callback) {
 					countsByState = getCountsByState(freedomTrackerResponseData);
 					//defining ranges for colors
 					quartersFromMaxValue = defineQuartersFromMax(countsByState);
-					//Filtering out states not on the map and applying colors
+					//Filtering out states not on the map
 					var states = Object.keys(countsByState).filter(function (key) {
 						if (key.length == 2 && key != "PR") {
 							return key;
 						}
 					});
+					//and applying colors and tooltip to each state
 					states.forEach(function (state) {
 						colorStateByFrequencyQuarter(state, countsByState, quartersFromMaxValue, mapColors)
+						addFloatingInfoDisplay(state);
 					});
-					addFloatingInfoDisplay("AR");
 				}
 			});
 		}
@@ -273,27 +274,21 @@ function colorStateByFrequencyQuarter(stateId, values, quarterValues, colors) {
 
 //Add floating div with info on hover
 function addFloatingInfoDisplay(elementId) { //countsByState, freedomTrackerResponseData should also be variables here
-	var floatingElement = mapElement.createElement("div");
-	floatingElement.innerHTML = "test est test";
+	var floatingElement = mapElement.getElementById('tooltip');
 	var element = mapElement.getElementById(elementId);
-	var anchor = document.getElementById("demo");
 	var position = element.getBoundingClientRect();
-	console.log(position);
 	element.addEventListener("mouseover", function (e) {
-		anchor.append(floatingElement);
-		e.preventDefault()
-		//Inserting the floating element works, but changing its properties doesn't.
-		floatingElement.left = (position.right + 20) + "px";
-		floatingElement.top = (window.scrollY + position.top - 60) + "px";
-		floatingElement.display = "block";
-		floatingElement.fill= "green";
-		floatingElement.height = "100px";
-		floatingElement.width =  "100px";
-		
+		floatingElement.setAttribute("x", (position.right + 20) + "px");
+		floatingElement.setAttribute("y", (window.scrollY + position.top - 60) + "px");
+		floatingElement.setAttribute("display", "block");
+		floatingElement.setAttribute("fill", "green");
+		floatingElement.setAttribute("height", "100px");
+		floatingElement.setAttribute("width", "100px");
+		floatingElement.setAttribute("visibility", "visible");
+		e.preventDefault()		
 	});
 	//Remove on mouseout
-	element.addEventListener("mouseLeave", function (e) {
-		floatingElement.style.display = "none";
-		floatingElement.remove();
+	element.addEventListener("mouseleave", function (e) {
+		floatingElement.setAttribute("visibility", "hidden");
 	});
 }
